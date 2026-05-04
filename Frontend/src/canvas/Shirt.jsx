@@ -1,56 +1,59 @@
-import { useGLTF, useTexture, Decal } from "@react-three/drei";
-import { useEffect, useRef } from "react";
+import { Clone, Decal, useGLTF, useTexture } from "@react-three/drei";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import * as THREE from "three";
 
-const Shirt = ({
-  shirtColor = "#ff0000",
-  logoUrl = "https://res.cloudinary.com/di9ljccil/image/upload/v1777815135/threejs_lww47e.png",
-  logoPosition = { x: 0, y: 0.0, z: 0.2 },
+function paintShirt(scene, color) {
+  scene.traverse((child) => {
+    if (child.isMesh) {
+      child.material = new THREE.MeshStandardMaterial({ color });
+    }
+  });
+}
+
+/**
+ * Renders the GLB shirt, applies `shirtColor`, and projects `logoUrl` as a decal
+ * on the first mesh drei's Clone walks (the main body for this asset).
+ */
+export default function Shirt({
+  logoUrl,
+  shirtColor = "#ef4444",
+  logoPosition = { x: 0, y: 0, z: 0.2 },
   logoScale = 0.18,
   shirtScale = 6.5,
-}) => {
+}) {
   const { scene } = useGLTF("/shirt_baked.glb");
-  const meshRef = useRef();
+  const logoMap = useTexture(logoUrl);
+  const decalHostUuid = useRef(null);
 
-  const logo = useTexture(logoUrl);
-
-  const minLogoScale = 0.15;
-  const logoScaleRange = 0.25;
-  const actualLogoScale =
-    minLogoScale + Math.max(0, Math.min(1, logoScale)) * logoScaleRange;
-
-  useEffect(() => {
-    scene.traverse((child) => {
-      if (child.isMesh) {
-        child.material = new THREE.MeshStandardMaterial({
-          color: shirtColor,
-        });
-
-        // attach first mesh to ref (IMPORTANT)
-        if (!meshRef.current) {
-          meshRef.current = child;
-        }
-      }
-    });
+  useLayoutEffect(() => {
+    paintShirt(scene, shirtColor);
   }, [scene, shirtColor]);
 
+  useEffect(() => {
+    return () => {
+      decalHostUuid.current = null;
+    };
+  }, []);
+
+  const decalScale = 0.15 + Math.max(0, Math.min(1, logoScale)) * 0.25;
+
   return (
-    <primitive object={scene} scale={shirtScale}>
-      {meshRef.current && (
-        <mesh
-          geometry={meshRef.current.geometry}
-          material={meshRef.current.material}
-        >
+    <Clone
+      object={scene}
+      scale={shirtScale}
+      inject={(node) => {
+        if (!node.isMesh) return null;
+        if (decalHostUuid.current == null) decalHostUuid.current = node.uuid;
+        if (node.uuid !== decalHostUuid.current) return null;
+        return (
           <Decal
+            map={logoMap}
             position={[logoPosition.x, logoPosition.y, logoPosition.z]}
             rotation={[0, 0, 0]}
-            scale={actualLogoScale}
-            map={logo}
+            scale={decalScale}
           />
-        </mesh>
-      )}
-    </primitive>
+        );
+      }}
+    />
   );
-};
-
-export default Shirt;
+}

@@ -1,15 +1,18 @@
+import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import Shirt from "./Shirt";
 
-const CanvasModel = () => {
+const CanvasModel = ({ logoUrl }) => {
   return (
     <div className="w-full h-full">
       <Canvas>
         <ambientLight />
         <directionalLight position={[2, 2, 5]} />
 
-        <Shirt />
+        <Suspense fallback={null}>
+          <Shirt logoUrl={logoUrl} />
+        </Suspense>
 
         <OrbitControls
           enablePan={false}

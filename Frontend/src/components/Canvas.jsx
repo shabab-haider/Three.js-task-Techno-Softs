@@ -1,8 +1,7 @@
-import React from "react";
 import CanvasModel from "../canvas/CanvasModel";
 
-const Canvas = () => {
-  return <CanvasModel />;
+const Canvas = ({ logoUrl }) => {
+  return <CanvasModel logoUrl={logoUrl} />;
 };
 
 export default Canvas;
